@@ -4,8 +4,28 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { Readable } from 'stream';
 
-export const uploadToS3 = async (fileStream: Readable, fileName: string, mimeType: string): Promise<string> => {
-    const key = `avatars/${uuidv4()}${path.extname(fileName)}`;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+export function isAllowedImageType(mimeType: string): boolean {
+    return ALLOWED_IMAGE_TYPES.includes(mimeType.toLowerCase());
+}
+
+export function getMaxUploadSize(): number {
+    return MAX_FILE_SIZE;
+}
+
+export const uploadToS3 = async (
+    fileStream: Readable,
+    fileName: string,
+    mimeType: string,
+    folder = 'avatars'
+): Promise<string> => {
+    const region = (process.env.AWS_REGION || 'us-east-1').trim();
+    if (!BUCKET_NAME) {
+        throw new Error('S3 bucket not configured');
+    }
+    const key = `${folder.replace(/\/$/, '')}/${uuidv4()}${path.extname(fileName)}`;
 
     const upload = new Upload({
         client: s3Client,
@@ -14,13 +34,9 @@ export const uploadToS3 = async (fileStream: Readable, fileName: string, mimeTyp
             Key: key,
             Body: fileStream,
             ContentType: mimeType,
-            // ACL: 'public-read', // Uncomment if bucket is public and you want files to be public
         },
     });
 
     await upload.done();
-
-    // Construct the URL. Note: This depends on your S3 bucket configuration.
-    // If using CloudFront or a custom domain, you'd return that here.
-    return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+    return `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
 };

@@ -62,6 +62,28 @@ export const login = async (req: Request, res: Response) => {
     }
 };
 
+export const refresh = async (req: Request, res: Response) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({ success: false, message: 'refreshToken required' });
+        }
+        const decoded = jwt.verify(refreshToken, REFRESH_SECRET) as { id: string };
+        const user = await User.findById(decoded.id);
+        if (!user || user.refreshToken !== refreshToken) {
+            return res.status(401).json({ success: false, message: 'Invalid refresh token' });
+        }
+        const accessToken = jwt.sign(
+            { id: user._id, role: user.role, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+        res.json({ success: true, data: { accessToken } });
+    } catch (error: any) {
+        return res.status(401).json({ success: false, message: 'Invalid refresh token' });
+    }
+};
+
 export const logout = async (req: any, res: Response) => {
     try {
         const userId = req.user.id;

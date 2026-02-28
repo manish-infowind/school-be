@@ -7,6 +7,9 @@ import userRoutes from './routes/userRoutes';
 import authRoutes from './routes/authRoutes';
 import collegeRoutes from './routes/collegeRoutes';
 import enquiryRoutes from './routes/enquiryRoutes';
+import locations from './routes/locations';
+import counsellingEnquiryRoutes from './routes/counsellingEnquiry';
+import collegeApplicationRoutes from './routes/collegeApplication';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import seedAdmin from './seed';
@@ -24,6 +27,7 @@ try {
 dotenv.config();
 
 import adminRoutes from './routes/adminRoutes';
+import adminApiRoutes from './routes/admin';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,6 +43,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/colleges', collegeRoutes);
 app.use('/api/enquiries', enquiryRoutes);
+app.use('/api', locations);
+app.use('/api/counselling-enquiry', counsellingEnquiryRoutes);
+app.use('/api/college-apply', collegeApplicationRoutes);
+app.use('/api/admin', adminApiRoutes);
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

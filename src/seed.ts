@@ -1,4 +1,17 @@
 import User from './models/User';
+import Country from './models/Country';
+
+const seedCountry = async () => {
+    try {
+        const existing = await Country.findOne({ code: 'IN' });
+        if (!existing) {
+            await Country.create({ name: 'India', code: 'IN', isActive: true });
+            console.log('✅ Country India seeded');
+        }
+    } catch (error) {
+        console.error('❌ Error seeding country:', error);
+    }
+};
 
 const seedAdmin = async () => {
     try {
@@ -7,7 +20,8 @@ const seedAdmin = async () => {
 
         if (!existingAdmin) {
             const admin = new User({
-                name: 'System Admin',
+                firstName: 'System',
+                lastName: 'Admin',
                 email: adminEmail,
                 password: 'adminrootuser',
                 phone: '1234567890',
@@ -26,4 +40,9 @@ const seedAdmin = async () => {
     }
 };
 
-export default seedAdmin;
+const runSeed = async () => {
+    await seedCountry();
+    await seedAdmin();
+};
+
+export default runSeed;
