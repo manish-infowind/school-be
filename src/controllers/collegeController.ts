@@ -8,6 +8,14 @@ import { slugify, ensureUniqueSlug } from '../utils/slugify';
 import mongoose from 'mongoose';
 import { COLLEGE_CATEGORIES } from '../models/College';
 
+/** Resolve stream slug (e.g. engineering) to college category name (e.g. Engineering). */
+function getCategoryByStreamSlug(slug: string): string | null {
+    const s = String(slug).trim().toLowerCase();
+    if (!s) return null;
+    const found = COLLEGE_CATEGORIES.find((cat) => slugify(cat) === s);
+    return found ?? null;
+}
+
 const SORT_OPTIONS = ['name_asc', 'name_desc', 'fee_asc', 'fee_desc', 'rating_desc', 'nirf_asc', 'newest', 'relevance'] as const;
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 50;
@@ -91,6 +99,9 @@ type CollegeDoc = {
     category: string;
     courses: string[];
     fee?: string;
+    feeAmount?: number;
+    feePeriod?: string;
+    courseFees?: Array<{ courseName?: string; fee?: string; feeAmount?: number; feePeriod?: string }>;
     badge?: string;
     description?: string;
     logoUrl?: string;
@@ -99,8 +110,36 @@ type CollegeDoc = {
     [key: string]: unknown;
 };
 
+/** Format fee for display: feeAmount + feePeriod -> e.g. "₹2.5L/yr". */
+function formatFeeDisplay(feeAmount: number | undefined, feePeriod: string | undefined): string {
+    if (feeAmount == null || Number.isNaN(feeAmount)) return '';
+    const period = feePeriod === 'semester' ? '/sem' : '/yr';
+    if (feeAmount >= 100000) {
+        const l = (feeAmount / 100000).toFixed(1).replace(/\.0$/, '');
+        return `₹${l}L${period}`;
+    }
+    return `₹${feeAmount.toLocaleString('en-IN')}${period}`;
+}
+
 function toListItem(doc: CollegeDoc): Record<string, unknown> {
     const location = doc.locationDisplay || `${doc.cityName || ''}, ${doc.stateName || ''}`.replace(/^,\s*|,\s*$/g, '').trim() || null;
+
+    let feeDisplay = (doc.fee && String(doc.fee).trim()) || '';
+    if (!feeDisplay && (doc.feeAmount != null || (Array.isArray(doc.courseFees) && doc.courseFees.length > 0))) {
+        if (doc.feeAmount != null) {
+            feeDisplay = formatFeeDisplay(doc.feeAmount, doc.feePeriod);
+        } else if (Array.isArray(doc.courseFees) && doc.courseFees.length > 0) {
+            const first = doc.courseFees[0];
+            feeDisplay = (first.fee && String(first.fee).trim()) || formatFeeDisplay(first.feeAmount, first.feePeriod);
+        }
+    }
+
+    const rawCourseFees = Array.isArray(doc.courseFees) ? doc.courseFees : [];
+    const courseFees = rawCourseFees.map((cf) => ({
+        course: cf.courseName ?? '',
+        fee: (cf.fee && String(cf.fee).trim()) || formatFeeDisplay(cf.feeAmount, cf.feePeriod) || '',
+    })).filter((c: { course: string }) => c.course);
+
     return {
         id: doc.slug,
         name: doc.name,
@@ -112,7 +151,10 @@ function toListItem(doc: CollegeDoc): Record<string, unknown> {
         cityId: doc.cityId ? String(doc.cityId) : null,
         category: doc.category,
         courses: Array.isArray(doc.courses) ? doc.courses : [],
-        fee: doc.fee ?? '',
+        courseFees,
+        fee: feeDisplay,
+        feeAmount: doc.feeAmount ?? null,
+        feePeriod: doc.feePeriod ?? null,
         badge: doc.badge ?? '',
         description: doc.description ?? null,
         logoUrl: doc.logoUrl ?? null,
@@ -124,10 +166,12 @@ function toListItem(doc: CollegeDoc): Record<string, unknown> {
 function toDetailPayload(doc: Record<string, unknown>): Record<string, unknown> {
     const location = (doc.locationDisplay as string) || `${(doc.cityName as string) || ''}, ${(doc.stateName as string) || ''}`.replace(/^,\s*|,\s*$/g, '').trim();
     const rawCourseFees = Array.isArray(doc.courseFees) ? doc.courseFees : [];
-    const courseFees = rawCourseFees.map((cf: Record<string, unknown>) => ({
-        course: cf.courseName ?? cf.course ?? '',
-        fee: cf.fee ?? '',
-    })).filter((cf: { course: string }) => cf.course);
+    const courseFees = rawCourseFees
+        .map((cf: Record<string, unknown>) => ({
+            course: String(cf.courseName ?? cf.course ?? ''),
+            fee: String(cf.fee ?? ''),
+        }))
+        .filter((cf) => cf.course.length > 0);
     return {
         id: doc.slug,
         slug: doc.slug,
@@ -171,7 +215,7 @@ function toDetailPayload(doc: Record<string, unknown>): Record<string, unknown> 
 
 export const listColleges = async (req: Request, res: Response) => {
     try {
-        const { category, state, stateId, city, cityId, courseId, search, sort, verified, page, limit } = req.query;
+        const { category, state, stateId, city, cityId, courseId, stream, search, sort, verified, page, limit } = req.query;
 
         const validationErrors: { field: string; message: string }[] = [];
         if (stateId && !isValidObjectId(String(stateId))) {
@@ -206,6 +250,9 @@ export const listColleges = async (req: Request, res: Response) => {
             if (COLLEGE_CATEGORIES.includes(cat as (typeof COLLEGE_CATEGORIES)[number])) {
                 filter.category = cat;
             }
+        } else if (stream && String(stream).trim()) {
+            const categoryFromStream = getCategoryByStreamSlug(String(stream).trim());
+            if (categoryFromStream) filter.category = categoryFromStream;
         }
 
         if (stateId && isValidObjectId(String(stateId))) {
@@ -227,8 +274,9 @@ export const listColleges = async (req: Request, res: Response) => {
             }
         }
 
-        if (verified === 'true' || verified === true) filter.isVerified = true;
-        else if (verified === 'false' || verified === false) filter.isVerified = false;
+        const verifiedStr = String(verified ?? '');
+        if (verifiedStr === 'true') filter.isVerified = true;
+        else if (verifiedStr === 'false') filter.isVerified = false;
 
         const searchFilter = hasSearch ? buildSearchFilter(searchStr) : {};
         const fullFilter = Object.keys(searchFilter).length > 0 ? { $and: [filter, searchFilter] } : filter;
@@ -242,7 +290,7 @@ export const listColleges = async (req: Request, res: Response) => {
         ]);
 
         const totalPages = Math.ceil(total / limitNum);
-        const listItems = (colleges as CollegeDoc[]).map(toListItem);
+        const listItems = (colleges as unknown as CollegeDoc[]).map(toListItem);
 
         res.json({
             success: true,
@@ -281,7 +329,7 @@ export const getCollegeBySlug = async (req: Request, res: Response) => {
                 code: 'COLLEGE_NOT_FOUND',
             });
         }
-        res.json({ success: true, data: toDetailPayload(college as Record<string, unknown>) });
+        res.json({ success: true, data: toDetailPayload(college as unknown as Record<string, unknown>) });
     } catch (error) {
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
@@ -401,10 +449,11 @@ export const createCollege = async (req: Request, res: Response) => {
 
 export const getCollegeById = async (req: Request, res: Response) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        const id = String(req.params.id ?? '');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ success: false, error: 'College not found', code: 'COLLEGE_NOT_FOUND' });
         }
-        const college = await College.findById(req.params.id).lean();
+        const college = await College.findById(id).lean();
         if (!college) {
             return res.status(404).json({ success: false, error: 'College not found', code: 'COLLEGE_NOT_FOUND' });
         }
@@ -453,7 +502,8 @@ export const adminListColleges = async (req: Request, res: Response) => {
 
 export const updateCollege = async (req: Request, res: Response) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        const id = String(req.params.id ?? '');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ success: false, error: 'College not found', code: 'COLLEGE_NOT_FOUND' });
         }
         const raw = { ...req.body, updatedBy: (req as Request & { user?: { id?: string } }).user?.id };
@@ -470,7 +520,7 @@ export const updateCollege = async (req: Request, res: Response) => {
             if (resolved.cityName !== undefined) updates.cityName = resolved.cityName;
             if (resolved.locationDisplay !== undefined) updates.locationDisplay = resolved.locationDisplay;
         }
-        const college = await College.findByIdAndUpdate(req.params.id, updates, { new: true });
+        const college = await College.findByIdAndUpdate(id, updates, { new: true });
         if (!college) {
             return res.status(404).json({ success: false, error: 'College not found', code: 'COLLEGE_NOT_FOUND' });
         }
@@ -486,7 +536,8 @@ export const updateCollege = async (req: Request, res: Response) => {
 
 export const updateCollegeStatus = async (req: Request, res: Response) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        const id = String(req.params.id ?? '');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ success: false, error: 'College not found', code: 'COLLEGE_NOT_FOUND' });
         }
         const { isActive } = req.body;
@@ -494,7 +545,7 @@ export const updateCollegeStatus = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: 'isActive must be true or false' });
         }
         const college = await College.findByIdAndUpdate(
-            req.params.id,
+            id,
             { isActive, updatedBy: (req as Request & { user?: { id?: string } }).user?.id },
             { new: true }
         );
@@ -509,10 +560,11 @@ export const updateCollegeStatus = async (req: Request, res: Response) => {
 
 export const deleteCollege = async (req: Request, res: Response) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        const id = String(req.params.id ?? '');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ success: false, error: 'College not found', code: 'COLLEGE_NOT_FOUND' });
         }
-        const college = await College.findByIdAndDelete(req.params.id);
+        const college = await College.findByIdAndDelete(id);
         if (!college) {
             return res.status(404).json({ success: false, error: 'College not found', code: 'COLLEGE_NOT_FOUND' });
         }

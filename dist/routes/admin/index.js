@@ -1,0 +1,48 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../../middleware/auth");
+const adminAuthController_1 = require("../../controllers/adminAuthController");
+const collegeController_1 = require("../../controllers/collegeController");
+const adminStateController_1 = require("../../controllers/adminStateController");
+const adminCityController_1 = require("../../controllers/adminCityController");
+const adminCourseController_1 = require("../../controllers/adminCourseController");
+const adminEnquiryController_1 = require("../../controllers/adminEnquiryController");
+const adminEventController_1 = require("../../controllers/adminEventController");
+const adminDashboardController_1 = require("../../controllers/adminDashboardController");
+const adminUploadController_1 = require("../../controllers/adminUploadController");
+const router = (0, express_1.Router)();
+// Auth (no JWT)
+router.post('/auth/login', adminAuthController_1.login);
+router.post('/auth/refresh', adminAuthController_1.refresh);
+// Protected from here
+router.use(auth_1.authenticate);
+router.post('/upload', adminUploadController_1.uploadCollegeImage);
+router.get('/dashboard', adminDashboardController_1.getDashboardCounts);
+router.get('/colleges', collegeController_1.adminListColleges);
+router.post('/colleges', collegeController_1.createCollege);
+router.get('/colleges/:id', collegeController_1.getCollegeById);
+router.put('/colleges/:id', collegeController_1.updateCollege);
+router.patch('/colleges/:id/status', collegeController_1.updateCollegeStatus);
+router.delete('/colleges/:id', collegeController_1.deleteCollege);
+router.get('/states', adminStateController_1.listStates);
+router.post('/states', adminStateController_1.createState);
+router.put('/states/:id', adminStateController_1.updateState);
+router.get('/cities', adminCityController_1.listCities);
+router.post('/cities', adminCityController_1.createCity);
+router.put('/cities/:id', adminCityController_1.updateCity);
+router.get('/courses', adminCourseController_1.listCourses);
+router.post('/courses', adminCourseController_1.createCourse);
+router.get('/courses/:id', adminCourseController_1.getCourseById);
+router.put('/courses/:id', adminCourseController_1.updateCourse);
+router.delete('/courses/:id', adminCourseController_1.deleteCourse);
+router.get('/enquiries', adminEnquiryController_1.listEnquiries);
+router.get('/enquiries/:id', adminEnquiryController_1.getEnquiryById);
+router.put('/enquiries/:id', adminEnquiryController_1.updateEnquiry);
+router.get('/events', adminEventController_1.listEvents);
+router.post('/events', adminEventController_1.createEvent);
+router.get('/events/:id', adminEventController_1.getEventById);
+router.put('/events/:id', adminEventController_1.updateEvent);
+router.delete('/events/:id', adminEventController_1.deleteEvent);
+exports.default = router;
+//# sourceMappingURL=index.js.map

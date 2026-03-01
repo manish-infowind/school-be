@@ -18,7 +18,14 @@ import {
     updateCourse,
     deleteCourse,
 } from '../../controllers/adminCourseController';
-import { listEnquiries, updateEnquiry } from '../../controllers/adminEnquiryController';
+import { listEnquiries, getEnquiryById, updateEnquiry } from '../../controllers/adminEnquiryController';
+import {
+    listEvents,
+    createEvent,
+    getEventById,
+    updateEvent,
+    deleteEvent,
+} from '../../controllers/adminEventController';
 import { getDashboardCounts } from '../../controllers/adminDashboardController';
 import { uploadCollegeImage } from '../../controllers/adminUploadController';
 
@@ -56,6 +63,13 @@ router.put('/courses/:id', updateCourse);
 router.delete('/courses/:id', deleteCourse);
 
 router.get('/enquiries', listEnquiries);
+router.get('/enquiries/:id', getEnquiryById);
 router.put('/enquiries/:id', updateEnquiry);
+
+router.get('/events', listEvents);
+router.post('/events', createEvent);
+router.get('/events/:id', getEventById);
+router.put('/events/:id', updateEvent);
+router.delete('/events/:id', deleteEvent);
 
 export default router;

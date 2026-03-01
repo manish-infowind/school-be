@@ -10,6 +10,8 @@ import enquiryRoutes from './routes/enquiryRoutes';
 import locations from './routes/locations';
 import counsellingEnquiryRoutes from './routes/counsellingEnquiry';
 import collegeApplicationRoutes from './routes/collegeApplication';
+import eventRoutes from './routes/eventRoutes';
+import streamRoutes from './routes/streamRoutes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import seedAdmin from './seed';
@@ -46,6 +48,8 @@ app.use('/api/enquiries', enquiryRoutes);
 app.use('/api', locations);
 app.use('/api/counselling-enquiry', counsellingEnquiryRoutes);
 app.use('/api/college-apply', collegeApplicationRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/streams', streamRoutes);
 app.use('/api/admin', adminApiRoutes);
 
 // Swagger Documentation

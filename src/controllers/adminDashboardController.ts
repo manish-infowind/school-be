@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
 import College from '../models/College';
-import CounsellingEnquiry from '../models/CounsellingEnquiry';
+import Enquiry from '../models/Enquiry';
 import CollegeApplication from '../models/CollegeApplication';
 
 export const getDashboardCounts = async (_req: Request, res: Response) => {
     try {
-        const [collegesTotal, collegesActive, enquiriesNew, enquiriesTotal, applicationsTotal] = await Promise.all([
+        const [collegesTotal, collegesActive, enquiriesPending, enquiriesTotal, applicationsTotal] = await Promise.all([
             College.countDocuments(),
             College.countDocuments({ isActive: true }),
-            CounsellingEnquiry.countDocuments({ status: 'new' }),
-            CounsellingEnquiry.countDocuments(),
+            Enquiry.countDocuments({ status: 'pending' }),
+            Enquiry.countDocuments(),
             CollegeApplication.countDocuments(),
         ]);
 
@@ -17,7 +17,7 @@ export const getDashboardCounts = async (_req: Request, res: Response) => {
             success: true,
             data: {
                 colleges: { total: collegesTotal, active: collegesActive },
-                enquiries: { total: enquiriesTotal, new: enquiriesNew },
+                enquiries: { total: enquiriesTotal, pending: enquiriesPending },
                 applications: { total: applicationsTotal },
             },
         });

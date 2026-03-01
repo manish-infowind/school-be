@@ -29,7 +29,7 @@ export const login = async (req: Request, res: Response) => {
             token,
             user: {
                 id: user._id,
-                name: user.name,
+                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
                 email: user.email,
                 role: user.role
             }

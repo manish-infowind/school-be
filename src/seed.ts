@@ -15,16 +15,16 @@ const seedCountry = async () => {
 
 const seedAdmin = async () => {
     try {
-        const adminEmail = 'admin@example.com';
+        const adminEmail = 'eduversitycollege@gmail.com';
         const existingAdmin = await User.findOne({ email: adminEmail });
 
         if (!existingAdmin) {
             const admin = new User({
-                firstName: 'System',
-                lastName: 'Admin',
+                firstName: 'Mahendra',
+                lastName: 'Parmar',
                 email: adminEmail,
-                password: 'adminrootuser',
-                phone: '1234567890',
+                password: 'Mahendra@2026',
+                phone: '9584807977',
                 role: 'admin'
             });
 

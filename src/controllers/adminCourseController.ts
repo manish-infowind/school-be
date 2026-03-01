@@ -45,10 +45,11 @@ export const createCourse = async (req: Request, res: Response) => {
 
 export const getCourseById = async (req: Request, res: Response) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        const id = String(req.params.id ?? '');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ success: false, error: 'Course not found', code: 'COURSE_NOT_FOUND' });
         }
-        const course = await Course.findById(req.params.id).lean();
+        const course = await Course.findById(id).lean();
         if (!course) {
             return res.status(404).json({ success: false, error: 'Course not found', code: 'COURSE_NOT_FOUND' });
         }
@@ -60,7 +61,8 @@ export const getCourseById = async (req: Request, res: Response) => {
 
 export const updateCourse = async (req: Request, res: Response) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        const id = String(req.params.id ?? '');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ success: false, error: 'Course not found', code: 'COURSE_NOT_FOUND' });
         }
         const updates = { ...req.body };
@@ -68,7 +70,7 @@ export const updateCourse = async (req: Request, res: Response) => {
         if (typeof (updates as { name?: string }).name === 'string') {
             (updates as { name: string }).name = (updates as { name: string }).name.trim();
         }
-        const course = await Course.findByIdAndUpdate(req.params.id, updates, { new: true });
+        const course = await Course.findByIdAndUpdate(id, updates, { new: true });
         if (!course) {
             return res.status(404).json({ success: false, error: 'Course not found', code: 'COURSE_NOT_FOUND' });
         }
@@ -84,10 +86,11 @@ export const updateCourse = async (req: Request, res: Response) => {
 
 export const deleteCourse = async (req: Request, res: Response) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        const id = String(req.params.id ?? '');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ success: false, error: 'Course not found', code: 'COURSE_NOT_FOUND' });
         }
-        const course = await Course.findByIdAndDelete(req.params.id);
+        const course = await Course.findByIdAndDelete(id);
         if (!course) {
             return res.status(404).json({ success: false, error: 'Course not found', code: 'COURSE_NOT_FOUND' });
         }
