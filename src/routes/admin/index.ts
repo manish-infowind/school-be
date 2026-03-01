@@ -26,7 +26,7 @@ import {
     updateEvent,
     deleteEvent,
 } from '../../controllers/adminEventController';
-import { getDashboardCounts } from '../../controllers/adminDashboardController';
+import { getDashboardCounts, getEnquiryAnalytics } from '../../controllers/adminDashboardController';
 import { uploadCollegeImage } from '../../controllers/adminUploadController';
 
 const router = Router();
@@ -40,6 +40,7 @@ router.use(authenticate);
 
 router.post('/upload', uploadCollegeImage);
 router.get('/dashboard', getDashboardCounts);
+router.get('/dashboard/enquiries/analytics', getEnquiryAnalytics);
 
 router.get('/colleges', adminListColleges);
 router.post('/colleges', createCollege);
